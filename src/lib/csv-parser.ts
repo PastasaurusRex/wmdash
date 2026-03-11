@@ -47,13 +47,29 @@ export const fetchAndParseData = async (): Promise<Post[]> => {
                 return isNaN(parsed) ? 0 : parsed;
             };
 
-            // Date format is "MMM DD"
-            // Fiscal year: Feb 2025 – Jan 2026
+            // Date formats vary: "MMM DD" or "YYYY-MM-DD HH:mm:ss"
             const dateStr = row['Published time (America/Toronto)'];
-            const parsed = dayjs(dateStr, 'MMM DD');
-            const month = parsed.month(); // 0 = January
-            const year = month === 0 ? 2026 : 2025;
-            const publishedAt = parsed.year(year).toDate();
+            let publishedAt: Date;
+            
+            // Detect ISO-like format by hyphen
+            if (dateStr && dateStr.includes('-')) {
+                publishedAt = dayjs(dateStr).toDate();
+            } else {
+                // Fallback to MMM DD
+                const parsed = dayjs(dateStr, 'MMM DD');
+                const month = parsed.month(); // 0 = January
+                const year = month === 0 ? 2026 : 2025;
+                publishedAt = parsed.year(year).toDate();
+            }
+
+            // Fiscal year calculation: 
+            // FY26: Feb 2025 to Jan 2026
+            // FY27: Feb 2026 to Jan 2027
+            const d = dayjs(publishedAt);
+            const m = d.month(); // 0-indexed
+            const y = d.year();
+            const fyYear = m >= 1 ? y + 1 : y; // Feb (1) to Dec (11) -> year + 1; Jan (0) -> year
+            const fiscalYear = `FY${fyYear.toString().slice(-2)}`;
 
             return {
                 id: row['Post ID'],
@@ -68,6 +84,7 @@ export const fetchAndParseData = async (): Promise<Post[]> => {
                 reach: row['Reach'] === '-' ? null : parseNumber(row['Reach']),
                 engagementRate: parsePercentage(row['Engagement rate']),
                 engagements: parseNumber(row['Engagements']),
+                fiscalYear,
             };
         });
     } catch (error) {
@@ -102,12 +119,21 @@ export const fetchFollowerData = async (): Promise<FollowerData[]> => {
             };
 
             const date = dayjs(row['Date']).toDate();
+            
+            // Fiscal year calculation: 
+            const d = dayjs(date);
+            const m = d.month(); // 0-indexed
+            const y = d.year();
+            const fyYear = m >= 1 ? y + 1 : y; // Feb (1) to Dec (11) -> year + 1; Jan (0) -> year
+            const fiscalYear = `FY${fyYear.toString().slice(-2)}`;
+
             return {
                 date,
                 month: dayjs(date).format('MMMM'),
                 facebook: parseNumber(row['FB followers']),
                 instagram: parseNumber(row['IG followers']),
                 tiktok: parseNumber(row['TT followers']),
+                fiscalYear,
             };
         });
     } catch (error) {
