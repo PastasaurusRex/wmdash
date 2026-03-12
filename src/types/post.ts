@@ -15,6 +15,7 @@ export interface Post {
   reach: number | null;
   engagementRate: number; // Ratio 0-1
   engagements: number;
+  fiscalYear: string;
 }
 
 export interface Filters {
@@ -23,6 +24,7 @@ export interface Filters {
   placements: string[];
   selectedMonths: string[];
   selectedWeeks: string[];
+  selectedFYs: string[];
   searchQuery: string;
   dateRange: { from: Date | undefined; to?: Date | undefined } | undefined;
 }
@@ -40,4 +42,5 @@ export interface FollowerData {
   facebook: number;
   instagram: number;
   tiktok: number;
+  fiscalYear: string;
 }

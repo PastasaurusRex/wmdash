@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useData } from '@/lib/data-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import CountUp from 'react-countup';
@@ -12,46 +12,27 @@ import { UserPlus } from '@phosphor-icons/react/dist/ssr/UserPlus';
 import { FacebookLogo } from '@phosphor-icons/react/dist/ssr/FacebookLogo';
 import { InstagramLogo } from '@phosphor-icons/react/dist/ssr/InstagramLogo';
 import { TiktokLogo } from '@phosphor-icons/react/dist/ssr/TiktokLogo';
-import Papa from 'papaparse';
 import dayjs from 'dayjs';
 
-interface RawFollowerRow {
-    Date: string;
-    'FB followers': string;
-    'IG followers': string;
-    'TT followers': string;
-}
-
 export const StatCards: React.FC = () => {
-    const { stats, filters } = useData();
-    const [followerData, setFollowerData] = useState<RawFollowerRow[]>([]);
-
-    useEffect(() => {
-        fetch('/wm-followers.csv')
-            .then(res => res.text())
-            .then(csv => {
-                const result = Papa.parse(csv, { header: true, skipEmptyLines: true });
-                setFollowerData(result.data as RawFollowerRow[]);
-            });
-    }, []);
+    const { stats, filters, followerData } = useData();
 
     const followerStats = useMemo(() => {
         if (followerData.length === 0) return { value: 0, label: '...', icon: UserPlus };
 
-        // Determine which month to show (most recent by default, or selected)
-        let targetRow;
-        if (filters.selectedMonths.length === 1) {
-            targetRow = followerData.find(row => dayjs(row.Date).format('MMMM') === filters.selectedMonths[0]);
+        // We ignore individual month filters for the "Total Followers" snapshot.
+        // Instead, we show the latest data for the selected Fiscal Year(s).
+        let relevantData = followerData;
+        if (filters.selectedFYs.length > 0) {
+            relevantData = followerData.filter(d => filters.selectedFYs.includes(d.fiscalYear));
         }
 
-        // Default to most recent month if no single month selected
-        if (!targetRow) {
-            targetRow = followerData[followerData.length - 1];
-        }
+        // Select the latest available month in the filtered set
+        const targetRow = relevantData.length > 0 ? relevantData[relevantData.length - 1] : null;
 
         if (!targetRow) return { value: 0, label: '...', icon: UserPlus };
 
-        const monthLabel = dayjs(targetRow.Date).format('MMMM YYYY');
+        const monthLabel = dayjs(targetRow.date).format('MMMM YYYY');
 
         // Calculate total based on network filters
         let total = 0;
@@ -59,13 +40,13 @@ export const StatCards: React.FC = () => {
         const noFilter = selectedNetworks.length === 0;
 
         if (noFilter || selectedNetworks.includes('FACEBOOK')) {
-            total += parseInt(targetRow['FB followers']) || 0;
+            total += targetRow.facebook || 0;
         }
         if (noFilter || selectedNetworks.includes('INSTAGRAM')) {
-            total += parseInt(targetRow['IG followers']) || 0;
+            total += targetRow.instagram || 0;
         }
         if (noFilter || selectedNetworks.includes('TIKTOK')) {
-            total += parseInt(targetRow['TT followers']) || 0;
+            total += targetRow.tiktok || 0;
         }
 
         // Determine icon
@@ -78,7 +59,7 @@ export const StatCards: React.FC = () => {
         }
 
         return { value: total, label: `as of ${monthLabel}`, icon };
-    }, [followerData, filters.selectedMonths, filters.networks]);
+    }, [followerData, filters.selectedFYs, filters.networks]);
 
     const cards = [
         {

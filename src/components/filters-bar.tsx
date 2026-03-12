@@ -31,7 +31,7 @@ const MONTHS = [
 ];
 
 export const FiltersBar: React.FC = () => {
-    const { filters, setFilters, allPlacements } = useData();
+    const { filters, setFilters, allPlacements, allFYs } = useData();
 
     const toggleNetwork = (network: Network) => {
         setFilters(prev => ({
@@ -69,6 +69,15 @@ export const FiltersBar: React.FC = () => {
         }));
     };
 
+    const toggleFY = (fy: string) => {
+        setFilters(prev => ({
+            ...prev,
+            selectedFYs: prev.selectedFYs.includes(fy)
+                ? prev.selectedFYs.filter(f => f !== fy)
+                : [...prev.selectedFYs, fy]
+        }));
+    };
+
     const resetFilters = () => {
         setFilters({
             networks: [],
@@ -76,6 +85,7 @@ export const FiltersBar: React.FC = () => {
             placements: [],
             selectedMonths: [],
             selectedWeeks: [],
+            selectedFYs: ['FY27'],
             searchQuery: '',
             dateRange: undefined,
         });
@@ -234,6 +244,32 @@ export const FiltersBar: React.FC = () => {
                                     onClick={() => toggleMonth(month)}
                                 >
                                     {month}
+                                </Button>
+                            );
+                        })}
+                    </div>
+                    <ScrollBar orientation="horizontal" />
+                </ScrollArea>
+            </div>
+
+            {/* FY Selector */}
+            <div className="relative">
+                <ScrollArea className="w-full">
+                    <div className="flex gap-2 pb-2">
+                        {allFYs.map((fy) => {
+                            const isSelected = filters.selectedFYs.includes(fy);
+                            return (
+                                <Button
+                                    key={fy}
+                                    variant={isSelected ? 'default' : 'outline'}
+                                    size="sm"
+                                    className={`h-8 px-6 rounded-full text-[12px] font-black tracking-widest transition-all ${isSelected
+                                        ? 'bg-secondary text-secondary-foreground border-secondary shadow-md shadow-secondary/20 scale-105'
+                                        : 'text-muted-foreground hover:border-secondary/50'
+                                        }`}
+                                    onClick={() => toggleFY(fy)}
+                                >
+                                    {fy}
                                 </Button>
                             );
                         })}

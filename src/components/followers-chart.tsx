@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ChartLineUp } from '@phosphor-icons/react/dist/ssr/ChartLineUp';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { fetchFollowerData } from '@/lib/csv-parser';
+import { useData } from '@/lib/data-context';
 import { FollowerData } from '@/types/post';
 
 const PLATFORM_COLORS: Record<string, string> = {
@@ -17,20 +17,12 @@ const PLATFORM_COLORS: Record<string, string> = {
 type Platform = 'facebook' | 'instagram' | 'tiktok';
 
 export const FollowersChart: React.FC = () => {
-    const [data, setData] = useState<FollowerData[]>([]);
+    const { filteredFollowerData, isLoading } = useData();
     const [selectedPlatform, setSelectedPlatform] = useState<Platform>('facebook');
-    const [isLoading, setIsLoading] = useState(true);
-
-    useEffect(() => {
-        fetchFollowerData()
-            .then(setData)
-            .catch(err => console.error('Failed to load follower data:', err))
-            .finally(() => setIsLoading(false));
-    }, []);
 
     const bounds = useMemo(() => {
-        if (data.length === 0) return { min: 0, max: 100 };
-        const values = data.map(d => d[selectedPlatform]);
+        if (filteredFollowerData.length === 0) return { min: 0, max: 100 };
+        const values = filteredFollowerData.map((d: FollowerData) => d[selectedPlatform]);
         const min = Math.min(...values);
         const max = Math.max(...values);
         // Add 5% padding to the top and bottom
@@ -39,7 +31,7 @@ export const FollowersChart: React.FC = () => {
             min: Math.floor(Math.max(0, min - padding)),
             max: Math.ceil(max + padding)
         };
-    }, [data, selectedPlatform]);
+    }, [filteredFollowerData, selectedPlatform]);
 
     if (isLoading) {
         return (
@@ -92,7 +84,7 @@ export const FollowersChart: React.FC = () => {
             </CardHeader>
             <CardContent className="h-[350px] pt-4">
                 <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={data} margin={{ top: 10, right: 30, left: 20, bottom: 0 }}>
+                    <LineChart data={filteredFollowerData} margin={{ top: 10, right: 30, left: 20, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
                         <XAxis
                             dataKey="month"
